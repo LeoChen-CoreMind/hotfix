@@ -1,80 +1,80 @@
 # hotfix
 
-动态加载 Dex/Jar/APK 功能实现热更新优化
+Implementation and Optimization of Dynamic Loading of Dex/Jar/APK for Hot Updates
  
-# 类概述
+# Class Overview
  
- MyApp  继承自  Application ，是一个用于实现安卓动态加载功能的自定义应用类。通过在应用初始化阶段加载指定目录下的  dex 、 jar 、 apk  文件，实现类的动态加载与热更新能力。
+ MyApp  extends  Application  and serves as a custom application class designed to implement dynamic loading functionality on Android. By loading  dex ,  jar , and  apk  files from a specified directory during the application's initialization phase, it enables dynamic class loading and hot update capabilities.
  
-# 核心功能
+# Core Functions
  
-1. 初始化动态加载环境
+2.1 Initializing the Dynamic Loading Environment
  
-在应用启动的  attachBaseContext  阶段完成初始化，指定：
+Initialization occurs during the  attachBaseContext  phase when the application starts, with the following directories specified:
  
-- 优化目录：应用私有目录下的  /dex_opt/ （用于存放 dex 优化后的 oat 文件）
-- 目标文件目录：应用私有目录下的  /dex_files/ （用于存放待加载的动态文件）
+- Optimization Directory:  /dex_opt/  within the application's private directory, used to store the optimized  oat  files generated from  dex  files.
+- Target File Directory:  /dex_files/  within the application's private directory, designated for storing dynamic files to be loaded.
  
-2. 扫描可加载文件
+2.2 Scanning Loadable Files
  
-通过  getDexPaths()  方法遍历目标目录，筛选出符合条件的文件：
+The  getDexPaths()  method traverses the target directory and filters files based on the following criteria:
  
-- 仅处理文件（不包含目录）
-- 支持的文件格式： .dex 、 .jar 、 .apk （不区分大小写）
-- 返回所有符合条件文件的绝对路径列表
+- Only processes files (excluding directories).
+- Supports file formats:  .dex ,  .jar ,  .apk  (case-insensitive).
+- Returns a list of absolute paths of all eligible files.
  
-3. 动态加载文件
+2.3 Dynamic File Loading
  
-通过  loadDexFiles()  方法实现核心加载逻辑，步骤包括：
+The  loadDexFiles()  method executes the core loading logic with the following steps:
  
-- 检查待加载文件列表是否为空
-- 为每个文件创建  DexClassLoader  进行加载
-- 提取加载后的  dexElements （dex 元素数组，存储类信息）
-- 合并新增 dex 元素与原有主程序的 dex 元素
-- 将合并后的元素注入到主类加载器（ PathClassLoader ），使动态类生效
+- Checks if the list of files to be loaded is empty.
+- Creates a  DexClassLoader  for each file to perform the loading operation.
+- Extracts the  dexElements  (an array of dex elements that store class information) after loading.
+- Merges the newly added dex elements with the existing dex elements of the main program.
+- Injects the merged elements into the main class loader ( PathClassLoader ), making the dynamic classes effective.
  
-# 关键方法解析
+# Analysis of Key Methods
  
-1.  attachBaseContext(Context context) 
+3.1  attachBaseContext(Context context) 
  
-- 重写应用初始化方法，在上下文附加阶段执行动态加载
-- 初始化优化目录和目标文件目录（均为应用私有目录，路径格式： /data/user/0/包名/files/子目录/ ）
-- 调用  getDexPaths()  获取文件列表，再通过  loadDexFiles()  加载
+- Overrides the application initialization method to execute dynamic loading during the context attachment phase.
+- Initializes the optimization directory and the target file directory (both are private directories of the application, with the path format:  /data/user/0/package_name/files/subdirectory/ ).
+- Calls  getDexPaths()  to obtain the file list and then uses  loadDexFiles()  to perform the loading.
  
-2.  getDexPaths() 
+3.2  getDexPaths() 
  
-- 功能：扫描目标目录，返回所有可动态加载的文件路径
-- 逻辑：
-- 检查目录是否存在、是否为有效目录且可读
-- 遍历目录下所有文件，过滤出  .dex 、 .jar 、 .apk  格式的文件
-- 返回文件绝对路径列表
+- Function: Scans the target directory and returns the paths of all dynamically loadable files.
+- Logic:
+- Checks if the directory exists, is a valid directory, and is readable.
+- Iterates through all files in the directory and filters out files with the  .dex ,  .jar , and  .apk  extensions.
+- Returns a list of absolute file paths.
  
-3.  loadDexFiles(Context context, List<String> dexPaths) 
+3.3  loadDexFiles(Context context, List<String> dexPaths) 
  
-- 核心加载方法，通过反射修改类加载器的 dex 元素实现动态加载
-- 关键步骤：
-- 获取主类加载器（ PathClassLoader ）
-- 为每个待加载文件创建  DexClassLoader ，并提取其  dexElements 
-- 提取主类加载器的  dexElements （原有类信息）
-- 合并所有  dexElements （新增文件的元素优先于原有元素）
-- 通过反射将合并后的元素设置回主类加载器，完成注入
+- This is the core loading method, which achieves dynamic loading by modifying the  dex  elements of the class loader through reflection.
+- Key Steps:
+- Obtains the main class loader ( PathClassLoader ).
+- Creates a  DexClassLoader  for each file to be loaded and extracts its  dexElements .
+- Extracts the  dexElements  from the main class loader (original class information).
+- Merges all  dexElements  (elements from newly added files take precedence over the original ones).
+- Sets the merged elements back into the main class loader through reflection to complete the injection.
  
-4. 反射相关辅助方法
+3.4 Reflection - Related Auxiliary Methods
  
--  createDexClassLoader() ：创建  DexClassLoader ，指定 dex 路径、优化目录和父类加载器
--  getPathList(ClassLoader classLoader) ：通过反射获取类加载器中的  pathList  字段（存储 dex 相关信息）
--  getDexElements(Object pathList) ：通过反射从  pathList  中获取  dexElements  数组
--  combineDexElements(List<Object> elementArrays) ：合并多个  dexElements  数组为一个
--  setDexElements(Object pathList, Object elements) ：通过反射将合并后的  dexElements  设置回  pathList 
+-  createDexClassLoader() : Creates a  DexClassLoader , specifying the  dex  path, optimization directory, and parent class loader.
+-  getPathList(ClassLoader classLoader) : Retrieves the  pathList  field from the class loader through reflection, which stores  dex  - related information.
+-  getDexElements(Object pathList) : Fetches the  dexElements  array from the  pathList  via reflection.
+-  combineDexElements(List<Object> elementArrays) : Merges multiple  dexElements  arrays into a single one.
+-  setDexElements(Object pathList, Object elements) : Sets the merged  dexElements  back into the  pathList  using reflection.
  
-# 实现原理
+# Implementation Principle
  
-通过反射修改安卓类加载器（ PathClassLoader ）的内部结构，将动态加载的 dex/jar/apk 中的类信息合并到主类加载器中。由于类加载器采用双亲委派模型，新增的类会优先被加载，从而实现不重启应用即可更新类逻辑（热更新）。
+By modifying the internal structure of the Android class loader ( PathClassLoader ) through reflection, the class information from dynamically loaded  dex ,  jar , and  apk  files is merged into the main class loader. Thanks to the parent - delegation model of class loaders, newly added classes are loaded with priority, thus enabling the update of class logic without restarting the application (hot update).
  
-# 注意事项
+# Precautions
  
-- 所有目录均使用应用私有目录，无需额外存储权限
-- 优化目录（ dex_opt ）用于存放 dex 优化后的 oat 文件，提升加载效率
-- 支持的文件格式为  .dex 、 .jar 、 .apk （安卓中 jar 和 apk 可包含 dex 资源）
-- 反射操作可能因安卓版本不同而存在兼容性问题（需测试不同 API 版本）
-- 异常处理：代码中捕获了反射及文件操作可能出现的异常，避免应用崩溃
+- All directories use the application's private directory, eliminating the need for additional storage permissions.
+- The optimization directory ( dex_opt ) stores the optimized  oat  files of  dex , enhancing the loading efficiency.
+- Supported file formats are  .dex ,  .jar ,  .apk  (in Android,  jar  and  apk  files can contain  dex  resources).
+- Reflection operations may encounter compatibility issues across different Android versions (testing on various API levels is required).
+- Exception Handling: The code catches potential exceptions from reflection and file operations to prevent application crashes.
