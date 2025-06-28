@@ -1,10 +1,12 @@
+# hotfix
+
 动态加载 Dex/Jar/APK 功能实现热更新优化
  
-一、类概述
+# 类概述
  
  MyApp  继承自  Application ，是一个用于实现安卓动态加载功能的自定义应用类。通过在应用初始化阶段加载指定目录下的  dex 、 jar 、 apk  文件，实现类的动态加载与热更新能力。
  
-二、核心功能
+# 核心功能
  
 1. 初始化动态加载环境
  
@@ -31,7 +33,7 @@
 - 合并新增 dex 元素与原有主程序的 dex 元素
 - 将合并后的元素注入到主类加载器（ PathClassLoader ），使动态类生效
  
-三、关键方法解析
+# 关键方法解析
  
 1.  attachBaseContext(Context context) 
  
@@ -65,11 +67,11 @@
 -  combineDexElements(List<Object> elementArrays) ：合并多个  dexElements  数组为一个
 -  setDexElements(Object pathList, Object elements) ：通过反射将合并后的  dexElements  设置回  pathList 
  
-四、实现原理
+# 实现原理
  
 通过反射修改安卓类加载器（ PathClassLoader ）的内部结构，将动态加载的 dex/jar/apk 中的类信息合并到主类加载器中。由于类加载器采用双亲委派模型，新增的类会优先被加载，从而实现不重启应用即可更新类逻辑（热更新）。
  
-五、注意事项
+# 注意事项
  
 - 所有目录均使用应用私有目录，无需额外存储权限
 - 优化目录（ dex_opt ）用于存放 dex 优化后的 oat 文件，提升加载效率
